@@ -4,47 +4,51 @@ export default {
     const { pathname } = url;
 
     // CORS preflight
-    if (request.method === 'OPTIONS') {
+    if (request.method === "OPTIONS") {
       return corsResponse(new Response(null, { status: 204 }));
     }
 
     try {
       // Auth routes (no token required)
-      if (pathname === '/api/auth/register' && request.method === 'POST') {
+      if (pathname === "/api/auth/register" && request.method === "POST") {
         return corsResponse(await registerUser(request, env));
       }
-      if (pathname === '/api/auth/login' && request.method === 'POST') {
+      if (pathname === "/api/auth/login" && request.method === "POST") {
         return corsResponse(await loginUser(request, env));
       }
 
       // All other routes require auth
       const user = await getUserFromAuth(request, env);
       if (!user) {
-        return corsResponse(jsonResponse({ error: 'Unauthorized' }, 401));
+        return corsResponse(jsonResponse({ error: "Unauthorized" }, 401));
       }
 
       // Cats
-      if (pathname === '/api/cats' && request.method === 'GET') {
+      if (pathname === "/api/cats" && request.method === "GET") {
         return corsResponse(await getCats(env));
       }
 
-      // Tasks today: /api/cats/:id/tasks/today
-      const tasksTodayMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/today$/);
-      if (tasksTodayMatch && request.method === 'GET') {
+      // Tasks today
+      const tasksTodayMatch = pathname.match(
+        /^\/api\/cats\/(\d+)\/tasks\/today$/
+      );
+      if (tasksTodayMatch && request.method === "GET") {
         const catId = parseInt(tasksTodayMatch[1], 10);
         return corsResponse(await getTasksToday(env, user.id, catId));
       }
 
       // Complete task
-      const completeMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/);
-      if (completeMatch && request.method === 'POST') {
+      const completeMatch = pathname.match(
+        /^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/
+      );
+      if (completeMatch && request.method === "POST") {
         const catId = parseInt(completeMatch[1], 10);
         const taskId = parseInt(completeMatch[2], 10);
         return corsResponse(await completeTask(env, user.id, catId, taskId));
       }
 
       // Uncomplete task
-      if (completeMatch && request.method === 'DELETE') {
+      if (completeMatch && request.method === "DELETE") {
         const catId = parseInt(completeMatch[1], 10);
         const taskId = parseInt(completeMatch[2], 10);
         return corsResponse(await uncompleteTask(env, user.id, catId, taskId));
@@ -52,51 +56,57 @@ export default {
 
       // Vet records list
       const vetListMatch = pathname.match(/^\/api\/cats\/(\d+)\/vet$/);
-      if (vetListMatch && request.method === 'GET') {
+      if (vetListMatch && request.method === "GET") {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await getVetRecords(env, user.id, catId));
       }
 
       // Create vet record
-      if (vetListMatch && request.method === 'POST') {
+      if (vetListMatch && request.method === "POST") {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await createVetRecord(request, env, user.id, catId));
       }
 
       // Update vet record
       const vetIdMatch = pathname.match(/^\/api\/vet\/(\d+)$/);
-      if (vetIdMatch && request.method === 'PATCH') {
+      if (vetIdMatch && request.method === "PATCH") {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await updateVetRecord(request, env, user.id, vetId));
       }
 
       // Delete vet record
-      if (vetIdMatch && request.method === 'DELETE') {
+      if (vetIdMatch && request.method === "DELETE") {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await deleteVetRecord(env, user.id, vetId));
       }
 
-      return corsResponse(jsonResponse({ error: 'Not found' }, 404));
+      return corsResponse(jsonResponse({ error: "Not found" }, 404));
     } catch (err) {
       console.error(err);
-      return corsResponse(jsonResponse({ error: 'Internal Server Error' }, 500));
+      return corsResponse(jsonResponse({ error: "Internal Server Error" }, 500));
     }
-  }
+  },
 };
 
 // ---------- Helpers ----------
 
 function corsResponse(response) {
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PATCH, DELETE, OPTIONS"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
   return response;
 }
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -113,8 +123,8 @@ async function parseJson(request) {
 function todayString() {
   const now = new Date();
   const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -125,7 +135,10 @@ async function registerUser(request, env) {
   const { name, email, password } = body;
 
   if (!name || !email || !password) {
-    return jsonResponse({ error: 'Name, email, and password required' }, 422);
+    return jsonResponse(
+      { error: "Name, email, and password required" },
+      422
+    );
   }
 
   const id = crypto.randomUUID();
@@ -133,19 +146,24 @@ async function registerUser(request, env) {
 
   try {
     await env.DB.prepare(
-      'INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(id, name, email, password, createdAt).run();
+      "INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)"
+    )
+      .bind(id, name, email, password, createdAt)
+      .run();
   } catch (e) {
-    if (String(e).includes('UNIQUE')) {
-      return jsonResponse({ error: 'Email already registered' }, 409);
+    if (String(e).includes("UNIQUE")) {
+      return jsonResponse({ error: "Email already registered" }, 409);
     }
     throw e;
   }
 
-  return jsonResponse({
-    token: id,
-    user: { id, name, email }
-  }, 201);
+  return jsonResponse(
+    {
+      token: id,
+      user: { id, name, email },
+    },
+    201
+  );
 }
 
 async function loginUser(request, env) {
@@ -153,15 +171,17 @@ async function loginUser(request, env) {
   const { email, password } = body;
 
   if (!email || !password) {
-    return jsonResponse({ error: 'Email and password required' }, 422);
+    return jsonResponse({ error: "Email and password required" }, 422);
   }
 
   const result = await env.DB.prepare(
-    'SELECT id, name, email, password FROM users WHERE email = ?'
-  ).bind(email).first();
+    "SELECT id, name, email, password FROM users WHERE email = ?"
+  )
+    .bind(email)
+    .first();
 
   if (!result || result.password !== password) {
-    return jsonResponse({ error: 'Invalid credentials' }, 401);
+    return jsonResponse({ error: "Invalid credentials" }, 401);
   }
 
   return jsonResponse({
@@ -169,20 +189,22 @@ async function loginUser(request, env) {
     user: {
       id: result.id,
       name: result.name,
-      email: result.email
-    }
+      email: result.email,
+    },
   });
 }
 
 async function getUserFromAuth(request, env) {
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ')) return null;
-  const token = auth.slice('Bearer '.length).trim();
+  const auth = request.headers.get("Authorization") || "";
+  if (!auth.startsWith("Bearer ")) return null;
+  const token = auth.slice("Bearer ".length).trim();
   if (!token) return null;
 
   const user = await env.DB.prepare(
-    'SELECT id, name, email FROM users WHERE id = ?'
-  ).bind(token).first();
+    "SELECT id, name, email FROM users WHERE id = ?"
+  )
+    .bind(token)
+    .first();
 
   return user || null;
 }
@@ -191,7 +213,7 @@ async function getUserFromAuth(request, env) {
 
 async function getCats(env) {
   const rows = await env.DB.prepare(
-    'SELECT id, name, initial, color, notes FROM cats ORDER BY id'
+    "SELECT id, name, initial, color, notes FROM cats ORDER BY id"
   ).all();
 
   return jsonResponse(rows.results || []);
@@ -203,22 +225,110 @@ async function getTasksToday(env, userId, catId) {
   const date = todayString();
 
   const template = await env.DB.prepare(
-    'SELECT id, name FROM tasks_template ORDER BY id'
+    "SELECT id, name FROM tasks_template ORDER BY id"
   ).all();
 
   const completed = await env.DB.prepare(
-    'SELECT task_id FROM tasks_completed WHERE user_id = ? AND cat_id = ? AND date = ?'
-  ).bind(userId, catId, date).all();
+    "SELECT task_id FROM tasks_completed WHERE user_id = ? AND cat_id = ? AND date = ?"
+  )
+    .bind(userId, catId, date)
+    .all();
 
-  const completedIds = new Set((completed.results || []).map(r => r.task_id));
+  const completedIds = new Set(
+    (completed.results || []).map((r) => r.task_id)
+  );
 
-  const tasks = (template.results || []).map(t => ({
+  const tasks = (template.results || []).map((t) => ({
     id: t.id,
     name: t.name,
-    completed: completedIds.has(t.id)
+    completed: completedIds.has(t.id),
   }));
 
   return jsonResponse({ date, catId, tasks });
 }
 
-async function completeTask(env, userId, catId,
+async function completeTask(env, userId, catId, taskId) {
+  const date = todayString();
+
+  await env.DB.prepare(
+    "INSERT OR IGNORE INTO tasks_completed (user_id, cat_id, task_id, date) VALUES (?, ?, ?, ?)"
+  )
+    .bind(userId, catId, taskId, date)
+    .run();
+
+  return jsonResponse({ success: true });
+}
+
+async function uncompleteTask(env, userId, catId, taskId) {
+  const date = todayString();
+
+  await env.DB.prepare(
+    "DELETE FROM tasks_completed WHERE user_id = ? AND cat_id = ? AND task_id = ? AND date = ?"
+  )
+    .bind(userId, catId, taskId, date)
+    .run();
+
+  return jsonResponse({ success: true });
+}
+
+// ---------- Vet Records ----------
+
+async function getVetRecords(env, userId, catId) {
+  const rows = await env.DB.prepare(
+    "SELECT id, title, notes, date FROM vet_records WHERE user_id = ? AND cat_id = ? ORDER BY date DESC"
+  )
+    .bind(userId, catId)
+    .all();
+
+  return jsonResponse(rows.results || []);
+}
+
+async function createVetRecord(request, env, userId, catId) {
+  const body = await parseJson(request);
+  const { title, notes, date } = body;
+
+  if (!title || !date) {
+    return jsonResponse({ error: "Title and date are required" }, 400);
+  }
+
+  await env.DB.prepare(
+    "INSERT INTO vet_records (user_id, cat_id, title, notes, date) VALUES (?, ?, ?, ?, ?)"
+  )
+    .bind(userId, catId, title, notes || "", date)
+    .run();
+
+  return jsonResponse({ success: true }, 201);
+}
+
+async function updateVetRecord(request, env, userId, vetId) {
+  const body = await parseJson(request);
+  const { title, notes, date } = body;
+
+  const existing = await env.DB.prepare(
+    "SELECT id FROM vet_records WHERE id = ? AND user_id = ?"
+  )
+    .bind(vetId, userId)
+    .first();
+
+  if (!existing) {
+    return jsonResponse({ error: "Record not found" }, 404);
+  }
+
+  await env.DB.prepare(
+    "UPDATE vet_records SET title = ?, notes = ?, date = ? WHERE id = ? AND user_id = ?"
+  )
+    .bind(title, notes || "", date, vetId, userId)
+    .run();
+
+  return jsonResponse({ success: true });
+}
+
+async function deleteVetRecord(env, userId, vetId) {
+  await env.DB.prepare(
+    "DELETE FROM vet_records WHERE id = ? AND user_id = ?"
+  )
+    .bind(vetId, userId)
+    .run();
+
+  return jsonResponse({ success: true });
+}
