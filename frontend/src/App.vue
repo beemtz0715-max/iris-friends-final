@@ -1,8 +1,39 @@
 <template>
   <div>
-    <header style="background:var(--pink); padding:1rem; color:white; display:flex; justify-content:space-between;">
-      <div style="font-weight:700;">Iris & Friends · Pet Care Tracker</div>
-      <button v-if="auth.token" class="button" style="background:white; color:var(--pink);" @click="auth.logout()">
+    <header
+      style="
+        background: var(--pink);
+        padding: 1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      "
+    >
+      <div style="display:flex; align-items:center;">
+        <img
+          src="/src/assets/logo.png"
+          alt="Iris & Friends Logo"
+          style="
+            height:48px;
+            width:auto;
+            margin-right:0.75rem;
+            border-radius:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.15);
+          "
+        />
+
+        <div style="font-weight:700; font-size:1.2rem;">
+          🐾 Iris & Friends 🐾
+        </div>
+      </div>
+
+      <button
+        v-if="auth.token"
+        class="button"
+        style="background:white; color:var(--pink);"
+        @click="auth.logout()"
+      >
         Logout
       </button>
     </header>
