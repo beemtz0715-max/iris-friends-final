@@ -12,7 +12,10 @@
 
         <input v-model="newCat.name" placeholder="Cat name" />
         <input v-model="newCat.notes" placeholder="Notes" />
-        <input v-model="newCat.color" placeholder="Color (ex: #ffb6c1)" />
+
+        <!-- REAL COLOR PICKER -->
+        <label class="color-label">Choose a color:</label>
+        <input type="color" v-model="newCat.color" class="color-picker" />
 
         <button class="save-btn" @click="saveCat">Save</button>
         <button class="cancel-btn" @click="showAddCat = false">Cancel</button>
@@ -50,7 +53,7 @@ const showAddCat = ref(false);
 const newCat = ref({
   name: "",
   notes: "",
-  color: "#ffb6c1"
+  color: "#ffb6c1" // default pink
 });
 
 function saveCat() {
@@ -119,6 +122,24 @@ onMounted(() => {
   margin-bottom: 10px;
   border-radius: 10px;
   border: 1px solid #ddd;
+}
+
+/* Color Picker */
+.color-picker {
+  width: 100%;
+  height: 45px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  padding: 4px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.color-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
 }
 
 .save-btn {
