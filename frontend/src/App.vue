@@ -50,14 +50,19 @@
 </template>
 
 <script setup>
-import { useAuthStore } from "./stores/auth";
+import { nextTick } from "vue";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "./stores/auth";
 
 const auth = useAuthStore();
 const router = useRouter();
 
-function logout() {
-  auth.logout();        // clear token
-  router.push("/login"); // redirect to login page
+async function logout() {
+  auth.logout(); // clear token
+
+  // WAIT for Vue to update the UI, THEN redirect
+  await nextTick();
+
+  router.push("/login");
 }
 </script>
