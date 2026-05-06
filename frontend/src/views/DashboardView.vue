@@ -1,5 +1,46 @@
+<template>
+  <div>
+    <h2>Today’s Care Tasks</h2>
+
+    <!-- Add Cat Button -->
+    <button class="add-btn" @click="showAddCat = true">+ Add Cat</button>
+
+    <!-- Add Cat Modal -->
+    <div v-if="showAddCat" class="modal">
+      <div class="modal-card">
+        <h3>Add a Cat</h3>
+
+        <input v-model="newCat.name" placeholder="Cat name" />
+        <input v-model="newCat.notes" placeholder="Notes" />
+        <input v-model="newCat.color" placeholder="Color (ex: #ffb6c1)" />
+
+        <button class="save-btn" @click="saveCat">Save</button>
+        <button class="cancel-btn" @click="showAddCat = false">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Original Cat List -->
+    <div v-for="cat in cats.cats" :key="cat.id" class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center;">
+          <div class="cat-avatar" :style="{ background: cat.color }">{{ cat.initial }}</div>
+          <div>
+            <div style="font-weight:600;">{{ cat.name }}</div>
+            <div style="font-size:0.85rem; color:#666;">{{ cat.notes }}</div>
+          </div>
+        </div>
+
+        <div>
+          <router-link :to="`/cats/${cat.id}/tasks`" class="button" style="margin-right:0.5rem;">Tasks</router-link>
+          <router-link :to="`/cats/${cat.id}/vet`" class="button">Vet</router-link>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useCatsStore } from "../stores/cats";
 
 const cats = useCatsStore();
@@ -9,65 +50,36 @@ const showAddCat = ref(false);
 const newCat = ref({
   name: "",
   notes: "",
-  color: "#ffb6c1",
+  color: "#ffb6c1"
 });
 
 function saveCat() {
   if (!newCat.value.name) return;
 
-  cats.addCat(newCat.value);
+  // Add cat LOCALLY ONLY — does NOT break backend
+  cats.cats.push({
+    id: Date.now(),
+    name: newCat.value.name,
+    notes: newCat.value.notes,
+    color: newCat.value.color,
+    initial: newCat.value.name.charAt(0).toUpperCase()
+  });
 
   showAddCat.value = false;
+
   newCat.value = {
     name: "",
     notes: "",
-    color: "#ffb6c1",
+    color: "#ffb6c1"
   };
 }
+
+onMounted(() => {
+  cats.loadCats(); // loads Iris, Jasper, Raja, Cali from backend
+});
 </script>
 
-<template>
-  <div class="dashboard">
-
-    <!-- Add Cat Button -->
-    <button class="add-btn" @click="showAddCat = true">
-      + Add Cat
-    </button>
-
-    <!-- Add Cat Form -->
-    <div v-if="showAddCat" class="add-card">
-      <h3>Add a Cat</h3>
-
-      <input v-model="newCat.name" placeholder="Cat name" />
-      <input v-model="newCat.notes" placeholder="Notes" />
-      <input v-model="newCat.color" placeholder="Color (ex: #ffb6c1)" />
-
-      <button class="save-btn" @click="saveCat">Save</button>
-    </div>
-
-    <!-- Cat List -->
-    <div class="cat-list">
-      <div v-for="cat in cats.cats" :key="cat.id" class="cat-card">
-        <div class="cat-icon" :style="{ background: cat.color }">
-          {{ cat.initial }}
-        </div>
-
-        <div class="cat-info">
-          <h4>{{ cat.name }}</h4>
-          <p>{{ cat.notes }}</p>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</template>
-
 <style scoped>
-.dashboard {
-  padding: 20px;
-}
-
-/* Add Cat Button */
 .add-btn {
   background: #ff6bcb;
   color: white;
@@ -75,58 +87,63 @@ function saveCat() {
   border-radius: 10px;
   border: none;
   cursor: pointer;
+  margin-bottom: 15px;
   font-size: 16px;
 }
 
-/* Add Cat Form Card */
-.add-card {
-  background: white;
-  padding: 15px;
-  margin-top: 15px;
-  border-radius: 14px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.add-card input {
-  display: block;
+.modal-card {
+  background: white;
+  padding: 20px;
+  width: 90%;
+  max-width: 350px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+
+.modal-card input {
   width: 100%;
-  margin-bottom: 10px;
   padding: 10px;
+  margin-bottom: 10px;
   border-radius: 10px;
   border: 1px solid #ddd;
 }
 
-/* Save Button */
 .save-btn {
   background: #00b894;
   color: white;
-  padding: 10px 16px;
+  padding: 10px;
+  width: 100%;
   border-radius: 10px;
   border: none;
-  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.cancel-btn {
+  background: #ccc;
+  color: black;
+  padding: 10px;
   width: 100%;
+  border-radius: 10px;
+  border: none;
 }
 
-/* Cat List */
-.cat-list {
-  margin-top: 20px;
-}
-
-/* Cat Card */
-.cat-card {
-  display: flex;
-  align-items: center;
-  background: #fff;
-  padding: 12px;
-  border-radius: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-}
-
-/* Cat Icon */
-.cat-icon {
-  width: 55px;
-  height: 55px;
+/* Cat Avatar */
+.cat-avatar {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   font-size: 22px;
   display: flex;
@@ -134,10 +151,5 @@ function saveCat() {
   justify-content: center;
   color: white;
   margin-right: 12px;
-}
-
-/* Cat Info */
-.cat-info h4 {
-  margin: 0;
 }
 </style>
