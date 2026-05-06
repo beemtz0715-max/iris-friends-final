@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8787";
 
 export async function api(path, options = {}) {
   const token = localStorage.getItem("token");
@@ -10,7 +10,7 @@ export async function api(path, options = {}) {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers
   });
