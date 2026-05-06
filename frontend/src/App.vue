@@ -28,11 +28,12 @@
         </div>
       </div>
 
+      <!-- FIXED LOGOUT BUTTON -->
       <button
         v-if="auth.token"
         class="button"
         style="background:white; color:var(--pink);"
-        @click="auth.logout()"
+        @click="logout"
       >
         Logout
       </button>
@@ -50,5 +51,13 @@
 
 <script setup>
 import { useAuthStore } from "./stores/auth";
+import { useRouter } from "vue-router";
+
 const auth = useAuthStore();
+const router = useRouter();
+
+function logout() {
+  auth.logout();        // clear token
+  router.push("/login"); // redirect to login page
+}
 </script>
