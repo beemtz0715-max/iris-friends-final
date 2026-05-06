@@ -21,3 +21,5 @@ export async function api(path, options = {}) {
 
   return data;
 }
+
+console.log("Rebuild triggered");
