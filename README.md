@@ -29,17 +29,11 @@ Logout functionality
 
 How to Use the App
 Go to the live deployed URL
-
 Register with any email and password
-
 Log in
-
 Select one of the existing cats or add your own
-
 Test daily tasks and vet record features
-
 Logout when finished
-
 No special setup required for testing.
 
 Evolution & Changes
@@ -49,18 +43,13 @@ The core app idea stayed the same.
 
 Features That Were Cut
 Syncing with local vet offices
-
 Automated vet appointment imports
-
 External API integrations
-
 These were removed due to time and technical limitations.
 
 Future Improvements
 Ability to sync with local vet offices
-
 Push notifications for medication reminders
-
 Cat photo uploads
 
 Multi‑user household support
