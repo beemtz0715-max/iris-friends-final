@@ -20,9 +20,7 @@ export default {
       // All other routes require auth
       const user = await getUserFromAuth(request, env);
       if (!user) {
-        return corsResponse(
-          jsonResponse({ error: 'Unauthorized' }, 401)
-        );
+        return corsResponse(jsonResponse({ error: 'Unauthorized' }, 401));
       }
 
       // Cats
@@ -37,7 +35,7 @@ export default {
         return corsResponse(await getTasksToday(env, user.id, catId));
       }
 
-      // Complete task: POST /api/cats/:id/tasks/:taskId/complete
+      // Complete task
       const completeMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/);
       if (completeMatch && request.method === 'POST') {
         const catId = parseInt(completeMatch[1], 10);
@@ -45,34 +43,34 @@ export default {
         return corsResponse(await completeTask(env, user.id, catId, taskId));
       }
 
-      // Uncomplete task: DELETE /api/cats/:id/tasks/:taskId/complete
+      // Uncomplete task
       if (completeMatch && request.method === 'DELETE') {
         const catId = parseInt(completeMatch[1], 10);
         const taskId = parseInt(completeMatch[2], 10);
         return corsResponse(await uncompleteTask(env, user.id, catId, taskId));
       }
 
-      // Vet records: GET /api/cats/:id/vet
+      // Vet records list
       const vetListMatch = pathname.match(/^\/api\/cats\/(\d+)\/vet$/);
       if (vetListMatch && request.method === 'GET') {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await getVetRecords(env, user.id, catId));
       }
 
-      // Vet records: POST /api/cats/:id/vet
+      // Create vet record
       if (vetListMatch && request.method === 'POST') {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await createVetRecord(request, env, user.id, catId));
       }
 
-      // Vet record by id: PATCH /api/vet/:id
+      // Update vet record
       const vetIdMatch = pathname.match(/^\/api\/vet\/(\d+)$/);
       if (vetIdMatch && request.method === 'PATCH') {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await updateVetRecord(request, env, user.id, vetId));
       }
 
-      // Vet record by id: DELETE /api/vet/:id
+      // Delete vet record
       if (vetIdMatch && request.method === 'DELETE') {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await deleteVetRecord(env, user.id, vetId));
@@ -120,18 +118,14 @@ function todayString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// ---------- Auth (simple token) ----------
-
-// For this project, we’ll keep auth simple:
-// - Password stored as plain text (OK for class demo, not production)
-// - Token is just the user id
+// ---------- Auth (simple token = user.id) ----------
 
 async function registerUser(request, env) {
   const body = await parseJson(request);
-  const { email, password } = body;
+  const { name, email, password } = body;
 
-  if (!email || !password) {
-    return jsonResponse({ error: 'Email and password required' }, 400);
+  if (!name || !email || !password) {
+    return jsonResponse({ error: 'Name, email, and password required' }, 422);
   }
 
   const id = crypto.randomUUID();
@@ -139,18 +133,18 @@ async function registerUser(request, env) {
 
   try {
     await env.DB.prepare(
-      'INSERT INTO users (id, email, password, created_at) VALUES (?, ?, ?, ?)'
-    ).bind(id, email, password, createdAt).run();
+      'INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(id, name, email, password, createdAt).run();
   } catch (e) {
     if (String(e).includes('UNIQUE')) {
-      return jsonResponse({ error: 'Email already registered' }, 400);
+      return jsonResponse({ error: 'Email already registered' }, 409);
     }
     throw e;
   }
 
   return jsonResponse({
     token: id,
-    user: { id, email }
+    user: { id, name, email }
   }, 201);
 }
 
@@ -159,11 +153,11 @@ async function loginUser(request, env) {
   const { email, password } = body;
 
   if (!email || !password) {
-    return jsonResponse({ error: 'Email and password required' }, 400);
+    return jsonResponse({ error: 'Email and password required' }, 422);
   }
 
   const result = await env.DB.prepare(
-    'SELECT id, email, password FROM users WHERE email = ?'
+    'SELECT id, name, email, password FROM users WHERE email = ?'
   ).bind(email).first();
 
   if (!result || result.password !== password) {
@@ -172,7 +166,11 @@ async function loginUser(request, env) {
 
   return jsonResponse({
     token: result.id,
-    user: { id: result.id, email: result.email }
+    user: {
+      id: result.id,
+      name: result.name,
+      email: result.email
+    }
   });
 }
 
@@ -183,11 +181,10 @@ async function getUserFromAuth(request, env) {
   if (!token) return null;
 
   const user = await env.DB.prepare(
-    'SELECT id, email FROM users WHERE id = ?'
+    'SELECT id, name, email FROM users WHERE id = ?'
   ).bind(token).first();
 
-  if (!user) return null;
-  return user;
+  return user || null;
 }
 
 // ---------- Cats ----------
@@ -200,7 +197,7 @@ async function getCats(env) {
   return jsonResponse(rows.results || []);
 }
 
-// ---------- Tasks (fixed list + daily completion) ----------
+// ---------- Tasks ----------
 
 async function getTasksToday(env, userId, catId) {
   const date = todayString();
@@ -221,81 +218,7 @@ async function getTasksToday(env, userId, catId) {
     completed: completedIds.has(t.id)
   }));
 
-  return jsonResponse({
-    date,
-    catId,
-    tasks
-  });
+  return jsonResponse({ date, catId, tasks });
 }
 
-async function completeTask(env, userId, catId, taskId) {
-  const date = todayString();
-
-  await env.DB.prepare(
-    'INSERT OR IGNORE INTO tasks_completed (user_id, cat_id, task_id, date) VALUES (?, ?, ?, ?)'
-  ).bind(userId, catId, taskId, date).run();
-
-  return jsonResponse({ success: true });
-}
-
-async function uncompleteTask(env, userId, catId, taskId) {
-  const date = todayString();
-
-  await env.DB.prepare(
-    'DELETE FROM tasks_completed WHERE user_id = ? AND cat_id = ? AND task_id = ? AND date = ?'
-  ).bind(userId, catId, taskId, date).run();
-
-  return jsonResponse({ success: true });
-}
-
-// ---------- Vet Records ----------
-
-async function getVetRecords(env, userId, catId) {
-  const rows = await env.DB.prepare(
-    'SELECT id, title, notes, date FROM vet_records WHERE user_id = ? AND cat_id = ? ORDER BY date DESC'
-  ).bind(userId, catId).all();
-
-  return jsonResponse(rows.results || []);
-}
-
-async function createVetRecord(request, env, userId, catId) {
-  const body = await parseJson(request);
-  const { title, notes, date } = body;
-
-  if (!title || !date) {
-    return jsonResponse({ error: 'Title and date are required' }, 400);
-  }
-
-  await env.DB.prepare(
-    'INSERT INTO vet_records (user_id, cat_id, title, notes, date) VALUES (?, ?, ?, ?, ?)'
-  ).bind(userId, catId, title, notes || '', date).run();
-
-  return jsonResponse({ success: true }, 201);
-}
-
-async function updateVetRecord(request, env, userId, vetId) {
-  const body = await parseJson(request);
-  const { title, notes, date } = body;
-
-  const existing = await env.DB.prepare(
-    'SELECT id FROM vet_records WHERE id = ? AND user_id = ?'
-  ).bind(vetId, userId).first();
-
-  if (!existing) {
-    return jsonResponse({ error: 'Record not found' }, 404);
-  }
-
-  await env.DB.prepare(
-    'UPDATE vet_records SET title = ?, notes = ?, date = ? WHERE id = ? AND user_id = ?'
-  ).bind(title, notes || '', date, vetId, userId).run();
-
-  return jsonResponse({ success: true });
-}
-
-async function deleteVetRecord(env, userId, vetId) {
-  await env.DB.prepare(
-    'DELETE FROM vet_records WHERE id = ? AND user_id = ?'
-  ).bind(vetId, userId).run();
-
-  return jsonResponse({ success: true });
-}
+async function completeTask(env, userId, catId,
