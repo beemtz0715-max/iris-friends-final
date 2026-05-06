@@ -27,8 +27,6 @@
           🐾 Iris & Friends 🐾
         </div>
       </div>
-
-      <!-- FIXED LOGOUT BUTTON -->
       <button
         v-if="auth.token"
         class="button"
