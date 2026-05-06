@@ -3,6 +3,7 @@
     <h2>Register</h2>
     <p v-if="auth.error" style="color:red">{{ auth.error }}</p>
 
+    <input class="input" v-model="name" placeholder="Name" />
     <input class="input" v-model="email" placeholder="Email" />
     <input class="input" v-model="password" type="password" placeholder="Password" />
 
@@ -23,11 +24,17 @@ import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 const router = useRouter();
 
+const name = ref("");
 const email = ref("");
 const password = ref("");
 
 async function register() {
-  await auth.register(email.value, password.value);
+  await auth.register({
+    name: name.value,
+    email: email.value,
+    password: password.value
+  });
+
   if (auth.token) router.push("/");
 }
 </script>
