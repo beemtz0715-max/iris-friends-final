@@ -1,6 +1,6 @@
 {
   "name": "iris-friends-api",
-  "main": "src/index.js",
+  "main": "index.js",
   "compatibility_date": "2026-05-05",
 
   "d1_databases": [
