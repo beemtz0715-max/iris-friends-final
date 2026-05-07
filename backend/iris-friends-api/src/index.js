@@ -3,15 +3,14 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // ⭐ Ensure demo user exists (one‑click login)
+    // ⭐ Ensure demo user exists (no name column)
     await env.DB.prepare(
-      "INSERT OR IGNORE INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)"
+      "INSERT OR IGNORE INTO users (id, email, password, created_at) VALUES (?, ?, ?, ?)"
     )
       .bind(
-        "demo-user-1",          // fixed ID for demo user
-        "Demo User",
+        "demo-user-1",
         "demo@example.com",
-        "password123",          // plain text for demo only
+        "password123",
         Date.now()
       )
       .run();
@@ -145,11 +144,11 @@ function todayString() {
 
 async function registerUser(request, env) {
   const body = await parseJson(request);
-  const { name, email, password } = body;
+  const { email, password } = body;
 
-  if (!name || !email || !password) {
+  if (!email || !password) {
     return jsonResponse(
-      { error: "Name, email, and password required" },
+      { error: "Email and password required" },
       422
     );
   }
@@ -159,9 +158,9 @@ async function registerUser(request, env) {
 
   try {
     await env.DB.prepare(
-      "INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO users (id, email, password, created_at) VALUES (?, ?, ?, ?)"
     )
-      .bind(id, name, email, password, createdAt)
+      .bind(id, email, password, createdAt)
       .run();
   } catch (e) {
     if (String(e).includes("UNIQUE")) {
@@ -173,7 +172,7 @@ async function registerUser(request, env) {
   return jsonResponse(
     {
       token: id,
-      user: { id, name, email },
+      user: { id, email }
     },
     201
   );
@@ -188,7 +187,7 @@ async function loginUser(request, env) {
   }
 
   const result = await env.DB.prepare(
-    "SELECT id, name, email, password FROM users WHERE email = ?"
+    "SELECT id, email, password FROM users WHERE email = ?"
   )
     .bind(email)
     .first();
@@ -201,9 +200,8 @@ async function loginUser(request, env) {
     token: result.id,
     user: {
       id: result.id,
-      name: result.name,
-      email: result.email,
-    },
+      email: result.email
+    }
   });
 }
 
@@ -214,7 +212,7 @@ async function getUserFromAuth(request, env) {
   if (!token) return null;
 
   const user = await env.DB.prepare(
-    "SELECT id, name, email FROM users WHERE id = ?"
+    "SELECT id, email FROM users WHERE id = ?"
   )
     .bind(token)
     .first();
