@@ -10,37 +10,33 @@ export const useAuthStore = defineStore("auth", {
   }),
 
   actions: {
-    async register({ name, email, password }) {
-      this.loading = true;
-      this.error = null;
-      try {
-        const data = await api("/api/auth/register", {
-          method: "POST",
-          body: JSON.stringify({ name, email, password })
-        });
-        this.token = data.token;
-        this.user = data.user;
-        localStorage.setItem("token", data.token);
-      } catch (e) {
-        this.error = e.message;
-      } finally {
-        this.loading = false;
-      }
+    // ❌ REGISTER NO LONGER USED
+    // We keep it but it won't be called
+    async register() {
+      this.error = "Registration disabled. Use demo login.";
     },
 
+    // ⭐ FIXED LOGIN — returns true/false
     async login(email, password) {
       this.loading = true;
       this.error = null;
+
       try {
         const data = await api("/api/auth/login", {
           method: "POST",
           body: JSON.stringify({ email, password })
         });
+
+        // If backend returned an error, api() throws
         this.token = data.token;
         this.user = data.user;
+
         localStorage.setItem("token", data.token);
+
+        return true; // ⭐ important
       } catch (e) {
-        this.error = e.message;
+        this.error = e.message || "Login failed";
+        return false; // ⭐ important
       } finally {
         this.loading = false;
       }

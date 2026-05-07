@@ -12,14 +12,13 @@
 
       <p v-if="auth.error" class="error">{{ auth.error }}</p>
 
-      <input class="input" v-model="email" placeholder="Email" />
-      <input class="input" v-model="password" type="password" placeholder="Password" />
+      <!-- ONE‑CLICK DEMO LOGIN BUTTON -->
+      <button class="button" @click="demoLogin">
+        Login as Demo User
+      </button>
 
-      <button class="button" @click="login">Login</button>
-
-      <p class="register-text">
-        No account?
-        <router-link to="/register">Register</router-link>
+      <p style="margin-top:1rem; color:#777;">
+        demo@example.com / password123
       </p>
     </div>
 
@@ -27,19 +26,16 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
 const auth = useAuthStore();
 const router = useRouter();
 
-const email = ref("");
-const password = ref("");
-
-async function login() {
-  await auth.login(email.value, password.value);
-  if (auth.token) router.push("/");
+async function demoLogin() {
+  const ok = await auth.login("demo@example.com", "password123");
+  if (ok) router.push("/");
+  else alert("Demo login failed");
 }
 </script>
 
@@ -78,15 +74,6 @@ async function login() {
   text-align: center;
 }
 
-.input {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  font-size: 15px;
-}
-
 .button {
   width: 100%;
   margin-top: 15px;
@@ -102,10 +89,5 @@ async function login() {
 .error {
   color: red;
   margin-bottom: 10px;
-}
-
-.register-text {
-  margin-top: 1rem;
-  font-size: 14px;
 }
 </style>

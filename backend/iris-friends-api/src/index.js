@@ -3,6 +3,19 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
+    // ⭐ Ensure demo user exists (one‑click login)
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)"
+    )
+      .bind(
+        "demo-user-1",          // fixed ID for demo user
+        "Demo User",
+        "demo@example.com",
+        "password123",          // plain text for demo only
+        Date.now()
+      )
+      .run();
+
     // CORS preflight
     if (request.method === "OPTIONS") {
       return corsResponse(new Response(null, { status: 204 }));
