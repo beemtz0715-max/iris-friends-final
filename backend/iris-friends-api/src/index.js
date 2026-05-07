@@ -3,15 +3,33 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // ⭐ Removed demo-user insert — it caused race conditions and CORS failures
-
-    // CORS preflight
+    // ⭐ CORS preflight
     if (request.method === "OPTIONS") {
       return corsResponse(new Response(null, { status: 204 }));
     }
 
     try {
-      // Auth routes (no token required)
+      // ⭐ TEMP: Seed cats (run once, then remove)
+      if (pathname === "/api/seed-cats") {
+        const cats = [
+          { name: "Iris", color: "#ffb6e6", initial: "I" },
+          { name: "Jasper", color: "#ff8acb", initial: "J" },
+          { name: "Raja", color: "#ff6bcb", initial: "R" },
+          { name: "Cali", color: "#ff9ad5", initial: "C" }
+        ];
+
+        for (const cat of cats) {
+          await env.DB.prepare(
+            "INSERT INTO cats (name, color, initial) VALUES (?, ?, ?)"
+          )
+            .bind(cat.name, cat.color, cat.initial)
+            .run();
+        }
+
+        return corsResponse(jsonResponse({ ok: true }));
+      }
+
+      // ⭐ Auth routes (no token required)
       if (pathname === "/api/auth/register" && request.method === "POST") {
         return corsResponse(await registerUser(request, env));
       }
@@ -19,25 +37,25 @@ export default {
         return corsResponse(await loginUser(request, env));
       }
 
-      // All other routes require auth
+      // ⭐ All other routes require auth
       const user = await getUserFromAuth(request, env);
       if (!user) {
         return corsResponse(jsonResponse({ error: "Unauthorized" }, 401));
       }
 
-      // Cats
+      // ⭐ Cats
       if (pathname === "/api/cats" && request.method === "GET") {
         return corsResponse(await getCats(env));
       }
 
-      // Tasks today
+      // ⭐ Tasks today
       const tasksTodayMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/today$/);
       if (tasksTodayMatch && request.method === "GET") {
         const catId = parseInt(tasksTodayMatch[1], 10);
         return corsResponse(await getTasksToday(env, user.id, catId));
       }
 
-      // Complete task
+      // ⭐ Complete task
       const completeMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/);
       if (completeMatch && request.method === "POST") {
         const catId = parseInt(completeMatch[1], 10);
@@ -45,34 +63,34 @@ export default {
         return corsResponse(await completeTask(env, user.id, catId, taskId));
       }
 
-      // Uncomplete task
+      // ⭐ Uncomplete task
       if (completeMatch && request.method === "DELETE") {
         const catId = parseInt(completeMatch[1], 10);
         const taskId = parseInt(completeMatch[2], 10);
         return corsResponse(await uncompleteTask(env, user.id, catId, taskId));
       }
 
-      // Vet records list
+      // ⭐ Vet records list
       const vetListMatch = pathname.match(/^\/api\/cats\/(\d+)\/vet$/);
       if (vetListMatch && request.method === "GET") {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await getVetRecords(env, user.id, catId));
       }
 
-      // Create vet record
+      // ⭐ Create vet record
       if (vetListMatch && request.method === "POST") {
         const catId = parseInt(vetListMatch[1], 10);
         return corsResponse(await createVetRecord(request, env, user.id, catId));
       }
 
-      // Update vet record
+      // ⭐ Update vet record
       const vetIdMatch = pathname.match(/^\/api\/vet\/(\d+)$/);
       if (vetIdMatch && request.method === "PATCH") {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await updateVetRecord(request, env, user.id, vetId));
       }
 
-      // Delete vet record
+      // ⭐ Delete vet record
       if (vetIdMatch && request.method === "DELETE") {
         const vetId = parseInt(vetIdMatch[1], 10);
         return corsResponse(await deleteVetRecord(env, user.id, vetId));
