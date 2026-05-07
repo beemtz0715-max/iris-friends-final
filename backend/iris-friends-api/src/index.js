@@ -3,17 +3,7 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // ⭐ Ensure demo user exists (no name column)
-    await env.DB.prepare(
-      "INSERT OR IGNORE INTO users (id, email, password, created_at) VALUES (?, ?, ?, ?)"
-    )
-      .bind(
-        "demo-user-1",
-        "demo@example.com",
-        "password123",
-        Date.now()
-      )
-      .run();
+    // ⭐ Removed demo-user insert — it caused race conditions and CORS failures
 
     // CORS preflight
     if (request.method === "OPTIONS") {
@@ -41,18 +31,14 @@ export default {
       }
 
       // Tasks today
-      const tasksTodayMatch = pathname.match(
-        /^\/api\/cats\/(\d+)\/tasks\/today$/
-      );
+      const tasksTodayMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/today$/);
       if (tasksTodayMatch && request.method === "GET") {
         const catId = parseInt(tasksTodayMatch[1], 10);
         return corsResponse(await getTasksToday(env, user.id, catId));
       }
 
       // Complete task
-      const completeMatch = pathname.match(
-        /^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/
-      );
+      const completeMatch = pathname.match(/^\/api\/cats\/(\d+)\/tasks\/(\d+)\/complete$/);
       if (completeMatch && request.method === "POST") {
         const catId = parseInt(completeMatch[1], 10);
         const taskId = parseInt(completeMatch[2], 10);
@@ -104,14 +90,8 @@ export default {
 
 function corsResponse(response) {
   response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PATCH, DELETE, OPTIONS"
-  );
-  response.headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   return response;
 }
 
@@ -140,17 +120,14 @@ function todayString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// ---------- Auth (simple token = user.id) ----------
+// ---------- Auth ----------
 
 async function registerUser(request, env) {
   const body = await parseJson(request);
   const { email, password } = body;
 
   if (!email || !password) {
-    return jsonResponse(
-      { error: "Email and password required" },
-      422
-    );
+    return jsonResponse({ error: "Email and password required" }, 422);
   }
 
   const id = crypto.randomUUID();
@@ -169,13 +146,7 @@ async function registerUser(request, env) {
     throw e;
   }
 
-  return jsonResponse(
-    {
-      token: id,
-      user: { id, email }
-    },
-    201
-  );
+  return jsonResponse({ token: id, user: { id, email } }, 201);
 }
 
 async function loginUser(request, env) {
@@ -198,26 +169,22 @@ async function loginUser(request, env) {
 
   return jsonResponse({
     token: result.id,
-    user: {
-      id: result.id,
-      email: result.email
-    }
+    user: { id: result.id, email: result.email },
   });
 }
 
 async function getUserFromAuth(request, env) {
   const auth = request.headers.get("Authorization") || "";
   if (!auth.startsWith("Bearer ")) return null;
+
   const token = auth.slice("Bearer ".length).trim();
   if (!token) return null;
 
-  const user = await env.DB.prepare(
+  return await env.DB.prepare(
     "SELECT id, email FROM users WHERE id = ?"
   )
     .bind(token)
     .first();
-
-  return user || null;
 }
 
 // ---------- Cats ----------
@@ -245,9 +212,7 @@ async function getTasksToday(env, userId, catId) {
     .bind(userId, catId, date)
     .all();
 
-  const completedIds = new Set(
-    (completed.results || []).map((r) => r.task_id)
-  );
+  const completedIds = new Set((completed.results || []).map((r) => r.task_id));
 
   const tasks = (template.results || []).map((t) => ({
     id: t.id,
